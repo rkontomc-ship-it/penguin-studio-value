@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Penguin Studio Value</title>
+  <style>
+    :root{--bg:#0b1220;--panel:#121d30;--panel2:#192840;--text:#edf4ff;--muted:#9db0ca;--accent:#65d5ff;--line:#2a3b55;--danger:#ff7272}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#172b46 0,#0b1220 48%);color:var(--text);font:16px/1.5 system-ui,Segoe UI,Arial,sans-serif}
+    header{padding:34px 18px 22px;text-align:center}h1{margin:0;font-size:clamp(30px,5vw,48px);letter-spacing:1px}header p{color:var(--muted);margin:8px 0 0}
+    main{max-width:1100px;margin:auto;padding:0 18px 50px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 22px}
+    input,button{font:inherit;border-radius:11px;border:1px solid var(--line);padding:11px 13px}input{background:#0d1829;color:var(--text);min-width:0}
+    #search{flex:1;min-width:220px}button{background:var(--panel2);color:var(--text);cursor:pointer}button:hover{border-color:var(--accent)}button.primary{background:#12658a;border-color:#258db5}button.danger{border-color:#743d4b;color:#ffb0b0}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:16px}
+    .card{background:linear-gradient(160deg,#17263d,#101a2b);border:1px solid var(--line);border-radius:17px;padding:15px;overflow:hidden}
+    .pet-image{width:100%;height:180px;object-fit:contain;background:#0b1627;border-radius:12px;margin-bottom:12px}
+    .placeholder{height:180px;display:grid;place-items:center;background:#0b1627;border-radius:12px;margin-bottom:12px;font-size:54px}
+    .card h2{font-size:19px;margin:0 0 10px}.prices{display:grid;gap:7px}.price{display:flex;justify-content:space-between;gap:12px;padding:8px 10px;background:#0b1627;border-radius:9px;color:var(--muted)}.price b{color:var(--text);text-align:right}
+    .admin-actions{display:flex;gap:7px;margin-top:12px}.admin-actions button{flex:1;font-size:14px;padding:8px}
+    .empty{color:var(--muted);text-align:center;padding:35px;border:1px dashed var(--line);border-radius:14px;grid-column:1/-1}
+    .top-actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:18px}
+    .modal-backdrop{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;padding:16px;z-index:5}
+    .modal{width:min(520px,100%);max-height:90vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px}
+    .modal h2{margin-top:0}.form-grid{display:grid;gap:10px}.form-grid label{display:grid;gap:5px;color:var(--muted);font-size:14px}.form-grid input{width:100%}
+    .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}.notice{color:var(--muted);font-size:13px;margin-top:10px}.hidden{display:none!important}
+    #status{min-height:22px;color:var(--muted);font-size:14px;margin:8px 0 16px;text-align:center}
+    footer{text-align:center;color:var(--muted);font-size:13px;padding:20px}
+  </style>
+</head>
+<body>
+<header>
+  <h1>🐧 PENGUIN STUDIO VALUE</h1>
+  <p>Aktualne wartości petów</p>
+  <div class="top-actions">
+    <button id="loginBtn">Panel administratora</button>
+    <button id="logoutBtn" class="hidden">Wyloguj</button>
+    <button id="addBtn" class="primary hidden">＋ Dodaj peta</button>
+  </div>
+</header>
+<main>
+  <div class="toolbar"><input id="search" placeholder="Szukaj peta..." autocomplete="off"><button id="refreshBtn">Odśwież</button></div>
+  <div id="status">Ładowanie...</div>
+  <section id="pets" class="grid"></section>
+</main>
+<footer>Penguin Studio Value · Fan-made value list</footer>
+
+<div class="modal-backdrop" id="loginModal">
+  <div class="modal">
+    <h2>Logowanie administratora</h2>
+    <div class="form-grid">
+      <label>Email<input id="email" type="email" autocomplete="username" placeholder="admin@email.com"></label>
+      <label>Hasło<input id="password" type="password" autocomplete="current-password" placeholder="Hasło"></label>
+    </div>
+    <p class="notice">Konto administratora musi być wcześniej utworzone w Supabase. Rejestracja publiczna jest wyłączona.</p>
+    <div class="modal-actions"><button data-close="loginModal">Anuluj</button><button id="doLogin" class="primary">Zaloguj</button></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="petModal">
+  <div class="modal">
+    <h2 id="petModalTitle">Dodaj peta</h2>
+    <div class="form-grid">
+      <label>Nazwa peta<input id="petName" maxlength="80" placeholder="Np. Huge Rainbow Unicorn"></label>
+      <label>Normal<input id="normal" placeholder="Np. 500mln albo N/A"></label>
+      <label>Gold<input id="gold" placeholder="Np. 600mln albo N/A"></label>
+      <label>Rainbow<input id="rainbow" placeholder="Np. 800mln albo N/A"></label>
+      <label>Zdjęcie peta<input id="petImage" type="file" accept="image/png,image/jpeg,image/webp"></label>
+    </div>
+    <p class="notice">Zdjęcie jest opcjonalne. Maksymalny rozmiar: 5 MB.</p>
+    <div class="modal-actions"><button data-close="petModal">Anuluj</button><button id="savePet" class="primary">Zapisz peta</button></div>
+  </div>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+  // WSTAW DANE PROJEKTU SUPABASE — opis znajduje się w pliku README.
+  const SUPABASE_URL = 'WKLEJ_TUTAJ_PROJECT_URL';
+  const SUPABASE_ANON_KEY = 'WKLEJ_TUTAJ_ANON_KEY';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const $ = (id) => document.getElementById(id);
+  let isAdmin = false;
+  let editingId = null;
+  let petsCache = [];
+
+  function setStatus(message, error=false) {
+    $('status').textContent = message;
+    $('status').style.color = error ? '#ff9b9b' : 'var(--muted)';
+  }
+  function showModal(id){ $(id).style.display='flex'; }
+  function hideModal(id){ $(id).style.display='none'; }
+  document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>hideModal(b.dataset.close)));
+  document.querySelectorAll('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.style.display='none'}));
+
+  async function checkAdmin(){
+    const {data:{user}} = await supabase.auth.getUser();
+    if(!user){isAdmin=false;updateAdminUI();return;}
+    const {data,error} = await supabase.from('admin_users').select('user_id').eq('user_id',user.id).maybeSingle();
+    isAdmin=!!data && !error;
+    updateAdminUI();
+    if(user && !isAdmin) setStatus('To konto nie ma uprawnień administratora.',true);
+  }
+  function updateAdminUI(){
+    $('loginBtn').classList.toggle('hidden',isAdmin);
+    $('logoutBtn').classList.toggle('hidden',!isAdmin);
+    $('addBtn').classList.toggle('hidden',!isAdmin);
+  }
+
+  function renderPets(){
+    const q=$('search').value.trim().toLowerCase();
+    const shown=petsCache.filter(p=>p.name.toLowerCase().includes(q));
+    const root=$('pets'); root.innerHTML='';
+    if(!shown.length){root.innerHTML='<div class="empty">Nie znaleziono petów. Administrator może dodać pierwszego peta.</div>';return;}
+    for(const p of shown){
+      const card=document.createElement('article');card.className='card';
+      if(p.image_url){const img=document.createElement('img');img.className='pet-image';img.src=p.image_url;img.alt=p.name;card.append(img);}
+      else {const ph=document.createElement('div');ph.className='placeholder';ph.textContent='🐧';card.append(ph);}
+      const title=document.createElement('h2');title.textContent=p.name;card.append(title);
+      const prices=document.createElement('div');prices.className='prices';
+      for(const [label,value] of [['Normal',p.normal_value],['Gold',p.gold_value],['Rainbow',p.rainbow_value]]){
+        const line=document.createElement('div');line.className='price';
+        const l=document.createElement('span');l.textContent=label;
+        const v=document.createElement('b');v.textContent=value||'N/A';
+        line.append(l,v);prices.append(line);
+      }
+      card.append(prices);
+      if(isAdmin){
+        const actions=document.createElement('div');actions.className='admin-actions';
+        const edit=document.createElement('button');edit.textContent='Edytuj';edit.onclick=()=>openEdit(p);
+        const del=document.createElement('button');del.textContent='Usuń';del.className='danger';del.onclick=()=>deletePet(p);
+        actions.append(edit,del);card.append(actions);
+      }
+      root.append(card);
+    }
+  }
+
+  async function loadPets(){
+    setStatus('Ładowanie petów...');
+    const {data,error}=await supabase.from('pets').select('*').order('name');
+    if(error){setStatus('Nie udało się pobrać petów. Sprawdź konfigurację Supabase.',true);console.error(error);return;}
+    petsCache=data||[];renderPets();setStatus(`Liczba petów: ${petsCache.length}`);
+  }
+
+  $('loginBtn').onclick=()=>showModal('loginModal');
+  $('doLogin').onclick=async()=>{
+    const {error}=await supabase.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});
+    if(error){setStatus('Logowanie nieudane: '+error.message,true);return;}
+    hideModal('loginModal');await checkAdmin();await loadPets();
+  };
+  $('logoutBtn').onclick=async()=>{await supabase.auth.signOut();await checkAdmin();renderPets();setStatus('Wylogowano.');};
+  $('addBtn').onclick=()=>{editingId=null;$('petModalTitle').textContent='Dodaj peta';clearPetForm();showModal('petModal');};
+  $('refreshBtn').onclick=loadPets;
+  $('search').oninput=renderPets;
+
+  function clearPetForm(){
+    ['petName','normal','gold','rainbow'].forEach(id=>$(id).value='');$('petImage').value='';
+  }
+  function openEdit(p){
+    editingId=p.id;$('petModalTitle').textContent='Edytuj peta';
+    $('petName').value=p.name;$('normal').value=p.normal_value||'';
+    $('gold').value=p.gold_value||'';$('rainbow').value=p.rainbow_value||'';
+    $('petImage').value='';showModal('petModal');
+  }
+
+  $('savePet').onclick=async()=>{
+    if(!isAdmin){setStatus('Brak uprawnień.',true);return;}
+    const name=$('petName').value.trim();
+    if(!name){setStatus('Wpisz nazwę peta.',true);return;}
+    let imageUrl=null;
+    const file=$('petImage').files[0];
+    if(file){
+      if(file.size>5*1024*1024){setStatus('Zdjęcie jest za duże. Maksymalnie 5 MB.',true);return;}
+      const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
+      const path=`${crypto.randomUUID()}.${ext}`;
+      const {error:uploadError}=await supabase.storage.from('pet-images').upload(path,file,{upsert:false});
+      if(uploadError){setStatus('Nie udało się wysłać zdjęcia: '+uploadError.message,true);return;}
+      imageUrl=supabase.storage.from('pet-images').getPublicUrl(path).data.publicUrl;
+    }
+    const record={name,normal_value:$('normal').value.trim()||'N/A',gold_value:$('gold').value.trim()||'N/A',rainbow_value:$('rainbow').value.trim()||'N/A'};
+    if(imageUrl)record.image_url=imageUrl;
+    let result;
+    if(editingId) result=await supabase.from('pets').update(record).eq('id',editingId);
+    else result=await supabase.from('pets').insert(record);
+    if(result.error){setStatus('Nie udało się zapisać: '+result.error.message,true);return;}
+    hideModal('petModal');clearPetForm();await loadPets();
+  };
+
+  async function deletePet(p){
+    if(!confirm(`Na pewno usunąć ${p.name}?`))return;
+    const {error}=await supabase.from('pets').delete().eq('id',p.id);
+    if(error){setStatus('Nie udało się usunąć: '+error.message,true);return;}
+    await loadPets();
+  }
+
+  await checkAdmin();
+  await loadPets();
+  supabase.auth.onAuthStateChange(()=>{setTimeout(async()=>{await checkAdmin();renderPets();},0);});
+</script>
+</body>
+</html>
